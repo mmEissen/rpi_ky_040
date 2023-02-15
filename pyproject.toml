@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "rpi-ky-040"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "rpi_ky_040"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+rpi-gpio = {version = "^0.7.1", markers = "platform_machine == 'aarch64'"}
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.2.1"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Callable, Optional
+from typing import Callable, Iterable, Optional
 import threading
 from contextlib import contextmanager
 
@@ -25,7 +25,7 @@ class NotInRestingStateError(Exception):
 
 
 @contextmanager
-def gpio_bcm_mode() -> None:
+def gpio_bcm_mode() -> Iterable[None]:
     original_mode = gpio.getmode()
     gpio.setmode(gpio.BCM)
     try:
@@ -47,15 +47,15 @@ class RotaryEncoderState:
 class RotaryEncoder:
     clk_pin: int
     dt_pin: int
-    button_pin: Optional[int] = None
+    sw_pin: Optional[int] = None
     on_clockwise_turn: Optional[Callable[[], None]] = None
     on_counter_clockwise_turn: Optional[Callable[[], None]] = None
     on_button_down: Optional[Callable[[], None]] = None
     on_button_up: Optional[Callable[[], None]] = None
 
     _state: RotaryEncoderState = dataclasses.field(default_factory=RotaryEncoderState, init=False)
-
-    def __enter__(self) -> RotaryEncoder:
+    
+    def start(self) -> None:
         with gpio_bcm_mode():
             gpio.setup(self.clk_pin, gpio.IN, pull_up_down=gpio.PUD_DOWN)
             gpio.setup(self.dt_pin, gpio.IN, pull_up_down=gpio.PUD_DOWN)
@@ -67,10 +67,8 @@ class RotaryEncoder:
 
             gpio.add_event_detect(self.clk_pin, gpio.BOTH, callback=self._on_clk_changed)
             gpio.add_event_detect(self.dt_pin, gpio.BOTH, callback=self._on_dt_changed)
-        
-        return self
 
-    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
+    def stop(self) -> None:
         with gpio_bcm_mode():
             gpio.remove_event_detect(self.clk_pin)
             gpio.remove_event_detect(self.dt_pin)
@@ -115,3 +113,30 @@ class RotaryEncoder:
                 return
         if self.on_clockwise_turn is not None:
             self.on_clockwise_turn()
+
+
+@contextmanager
+def rotary_encoder(
+    *,
+    clk_pin: int,
+    dt_pin: int,
+    sw_pin: Optional[int] = None,
+    on_clockwise_turn: Optional[Callable[[], None]] = None,
+    on_counter_clockwise_turn: Optional[Callable[[], None]] = None,
+    on_button_down: Optional[Callable[[], None]] = None,
+    on_button_up: Optional[Callable[[], None]] = None,
+) -> Iterable[RotaryEncoder]:
+    encoder = RotaryEncoder(
+        clk_pin=clk_pin,
+        dt_pin=dt_pin,
+        sw_pin=sw_pin,
+        on_clockwise_turn=on_clockwise_turn,
+        on_counter_clockwise_turn=on_counter_clockwise_turn,
+        on_button_down=on_button_down,
+        on_button_up=on_button_up,
+    )
+    encoder.start()
+    try:
+        yield encoder
+    finally:
+        encoder.stop()

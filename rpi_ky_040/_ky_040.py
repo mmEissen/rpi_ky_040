@@ -148,7 +148,7 @@ def rotary_encoder(
     on_counter_clockwise_turn: Optional[Callback] = None,
     on_button_down: Optional[Callback] = None,
     on_button_up: Optional[Callback] = None,
-    callback_handling: CallbackHandling = CallbackHandling.SPAWN_THREAD,
+    callback_handling: CallbackHandling = CallbackHandling.GLOBAL_WORKER_THREAD,
 ) -> Iterable[RotaryEncoder]:
     kwargs = dict(
         clk_pin=clk_pin,

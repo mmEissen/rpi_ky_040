@@ -149,7 +149,7 @@ def rotary_encoder(
     on_button_down: Optional[Callback] = None,
     on_button_up: Optional[Callback] = None,
     callback_handling: CallbackHandling = CallbackHandling.GLOBAL_WORKER_THREAD,
-) -> Iterable[RotaryEncoder]:
+) -> Iterable[None]:
     kwargs = dict(
         clk_pin=clk_pin,
         dt_pin=dt_pin,
@@ -168,7 +168,7 @@ def rotary_encoder(
             )
             encoder.start()
             try:
-                yield encoder
+                yield
             finally:
                 encoder.stop()
     elif callback_handling == CallbackHandling.LOCAL_WORKER_THREAD:
@@ -180,7 +180,7 @@ def rotary_encoder(
         )
         encoder.start()
         try:
-            yield encoder
+            yield
         finally:
             encoder.stop()
             worker_thread.stop()
@@ -195,7 +195,7 @@ def rotary_encoder(
         )
         encoder.start()
         try:
-            yield encoder
+            yield
         finally:
             encoder.stop()
 

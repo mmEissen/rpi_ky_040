@@ -34,7 +34,7 @@ with rotary_encoder(
     dt_pin=21,
     on_clockwise_turn=increment,
     on_counter_clockwise_turn=decrement,
-) as ky_040:
+):
     input("press enter to quit\n")
 ```
 

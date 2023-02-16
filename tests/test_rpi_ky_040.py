@@ -20,7 +20,7 @@ def rotary_encoder(gpio_mock, clk_pin, dt_pin):
         dt_pin=dt_pin,
         on_clockwise_turn=mock.MagicMock(), 
         on_counter_clockwise_turn=mock.MagicMock(),
-        callback_handling=rpi_ky_040.CallbackHandling.SAME_THREAD,
+        callback_handling=rpi_ky_040.CallbackHandling.GPIO_INTERUPT_THREAD,
     ) as rotary_encoder:
         yield rotary_encoder
 

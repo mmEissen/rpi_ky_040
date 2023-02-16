@@ -49,7 +49,7 @@ class RotaryEncoderState:
 Callback = Callable[[], None]
 
 
-def same_thread_callback_handler(callback: Callback) -> None:
+def gpio_thread_callback_handler(callback: Callback) -> None:
     callback()
 
 
@@ -68,7 +68,7 @@ class RotaryEncoder:
     on_button_down: Optional[Callback] = None
     on_button_up: Optional[Callback] = None
 
-    _callback_handler: Callable[[Callback], object] = same_thread_callback_handler
+    _callback_handler: Callable[[Callback], object] = gpio_thread_callback_handler
     _state: RotaryEncoderState = dataclasses.field(default_factory=RotaryEncoderState, init=False)
     
     def start(self) -> None:
@@ -132,7 +132,7 @@ class RotaryEncoder:
 
 
 class CallbackHandling(enum.Enum):
-    SAME_THREAD = enum.auto()
+    GPIO_INTERUPT_THREAD = enum.auto()
     GLOBAL_WORKER_THREAD = enum.auto()
     LOCAL_WORKER_THREAD = enum.auto()
     SPAWN_THREAD = enum.auto()
@@ -185,8 +185,8 @@ def rotary_encoder(
             encoder.stop()
             worker_thread.stop()
     else:
-        if callback_handling == CallbackHandling.SAME_THREAD:
-            handler = same_thread_callback_handler
+        if callback_handling == CallbackHandling.GPIO_INTERUPT_THREAD:
+            handler = gpio_thread_callback_handler
         else:
             handler = spawn_thread_callback_handler
         encoder = RotaryEncoder(

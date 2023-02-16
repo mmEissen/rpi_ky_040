@@ -208,16 +208,18 @@ class CallbackThread(threading.Thread):
 
     def run(self) -> None:
         while not self._stop.is_set():
+            print("loop")
             try:
                 callback = self.queue.pop()
             except IndexError:
-                pass
+                print("waiting")
             else:
                 try:
                     callback()
                 except Exception:
                     traceback.print_exc()
         while True:
+            print("finalizing")
             try:
                 callback = self.queue.pop()
             except IndexError:

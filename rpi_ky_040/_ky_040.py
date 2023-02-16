@@ -202,24 +202,22 @@ def rotary_encoder(
 
 class CallbackThread(threading.Thread):
     def __init__(self) -> None:
-        self._stop = threading.Event()
+        self._stop_flag = threading.Event()
         self.queue: collections.deque[Callback] = collections.deque()
         super().__init__(name="ky-040-callback-handler", daemon=True)
 
     def run(self) -> None:
-        while not self._stop.is_set():
-            print("loop")
+        while not self._stop_flag.is_set():
             try:
                 callback = self.queue.pop()
             except IndexError:
-                print("waiting")
+                pass
             else:
                 try:
                     callback()
                 except Exception:
                     traceback.print_exc()
         while True:
-            print("finalizing")
             try:
                 callback = self.queue.pop()
             except IndexError:
@@ -231,7 +229,7 @@ class CallbackThread(threading.Thread):
                     traceback.print_exc()
     
     def stop(self) -> None:
-        self._stop.set()
+        self._stop_flag.set()
         self.join()
 
 

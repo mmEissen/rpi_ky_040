@@ -217,8 +217,16 @@ class CallbackThread(threading.Thread):
                     callback()
                 except Exception:
                     traceback.print_exc()
-        while self.queue:
-            self.queue.pop()()
+        while True:
+            try:
+                callback = self.queue.pop()
+            except IndexError:
+                return
+            else:
+                try:
+                    callback()
+                except Exception:
+                    traceback.print_exc()
     
     def stop(self) -> None:
         self._is_running = False

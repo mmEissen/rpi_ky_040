@@ -133,7 +133,8 @@ class RotaryEncoder:
 
 class CallbackHandling(enum.Enum):
     SAME_THREAD = enum.auto()
-    WORKER_THREAD = enum.auto()
+    GLOBAL_WORKER_THREAD = enum.auto()
+    LOCAL_WORKER_THREAD = enum.auto()
     SPAWN_THREAD = enum.auto()
 
 
@@ -159,7 +160,7 @@ def rotary_encoder(
         on_button_up=on_button_up,
     )
 
-    if callback_handling == CallbackHandling.WORKER_THREAD:
+    if callback_handling == CallbackHandling.GLOBAL_WORKER_THREAD:
         with callback_queue() as queue:
             encoder = RotaryEncoder(
                 _callback_handler=queue.push,
@@ -170,6 +171,18 @@ def rotary_encoder(
                 yield encoder
             finally:
                 encoder.stop()
+    elif callback_handling == CallbackHandling.LOCAL_WORKER_THREAD:
+        worker_thread = CallbackThread()
+        encoder = RotaryEncoder(
+            _callback_handler=worker_thread.queue.push,
+            **kwargs
+        )
+        encoder.start()
+        try:
+            yield encoder
+        finally:
+            encoder.stop()
+            worker_thread.stop()
     else:
         if callback_handling == CallbackHandling.SAME_THREAD:
             handler = same_thread_callback_handler

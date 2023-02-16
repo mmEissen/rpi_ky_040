@@ -16,13 +16,16 @@ def dt_pin():
 @pytest.fixture
 def rotary_encoder(gpio_mock, clk_pin, dt_pin):
     with rpi_ky_040.RotaryEncoder(
-        clk_pin, dt_pin, mock.MagicMock(), mock.MagicMock()
+        clk_pin=clk_pin,
+        dt_pin=dt_pin,
+        on_clockwise_turn=mock.MagicMock(), 
+        on_counter_clockwise_turn=mock.MagicMock(),
     ) as rotary_encoder:
         yield rotary_encoder
 
 
 @pytest.mark.parametrize(
-    "clk_pin_states, dt_pin_states, increments, decrements",
+    "clk_pin_states, dt_pin_states, clockwise_turns, counter_clockwise_turns",
     [
         pytest.param(
             "011", 
@@ -58,10 +61,10 @@ def test_increment_decrement(
     dt_pin,
     clk_pin_states,
     dt_pin_states,
-    increments,
-    decrements,
+    clockwise_turns,
+    counter_clockwise_turns,
 ):
     gpio_mock.run_sequence((clk_pin, dt_pin), (clk_pin_states, dt_pin_states))
 
-    assert rotary_encoder.increment.call_count == increments
-    assert rotary_encoder.decrement.call_count == decrements
+    assert rotary_encoder.on_clockwise_turn.call_count == clockwise_turns
+    assert rotary_encoder.on_counter_clockwise_turn.call_count == counter_clockwise_turns

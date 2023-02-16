@@ -1,14 +1,14 @@
 import collections
 from typing import Callable, Optional
-from unittest import mock
 
 
 class GPIO:
-    IN = mock.MagicMock()
-    PUD_DOWN = mock.MagicMock()
-    RISING = "RISING"
-    FALLING = "FALLING"
-    BOTH = "BOTH"
+    IN = 1
+    PUD_DOWN = 21
+    RISING = 31
+    FALLING = 32
+    BOTH = 33
+    BCM = 11
 
     @staticmethod
     def setup(pin: int, direction: object, pull_up_down: object) -> None:
@@ -36,6 +36,14 @@ class GPIO:
     
     @staticmethod
     def cleanup(pins: object = None) -> None:
+        return
+    
+    @staticmethod
+    def get_mode() -> None:
+        return None
+
+    @staticmethod
+    def set_mode(mode: int) -> None:
         return
 
 _pins: collections.defaultdict[int, int]

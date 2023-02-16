@@ -173,6 +173,7 @@ def rotary_encoder(
                 encoder.stop()
     elif callback_handling == CallbackHandling.LOCAL_WORKER_THREAD:
         worker_thread = CallbackThread()
+        worker_thread.start()
         encoder = RotaryEncoder(
             _callback_handler=worker_thread.queue.appendleft,
             **kwargs

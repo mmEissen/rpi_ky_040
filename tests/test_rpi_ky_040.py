@@ -15,11 +15,12 @@ def dt_pin():
 
 @pytest.fixture
 def rotary_encoder(gpio_mock, clk_pin, dt_pin):
-    with rpi_ky_040.RotaryEncoder(
+    with rpi_ky_040.rotary_encoder(
         clk_pin=clk_pin,
         dt_pin=dt_pin,
         on_clockwise_turn=mock.MagicMock(), 
         on_counter_clockwise_turn=mock.MagicMock(),
+        callback_handling=rpi_ky_040.CallbackHandling.SAME_THREAD,
     ) as rotary_encoder:
         yield rotary_encoder
 

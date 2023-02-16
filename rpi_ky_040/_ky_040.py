@@ -224,25 +224,25 @@ class CallbackThread(threading.Thread):
         self.join()
 
 
-_callback_thread: Optional[CallbackThread] = None
+_global_callback_thread: Optional[CallbackThread] = None
 _usage_counter = 0
 _usage_counter_lock = threading.Lock()
 
 
 @contextmanager
 def callback_queue() -> Iterable[collections.deque[Callback]]:
-    global _callback_queue, _callback_thread, _usage_counter
+    global _callback_queue, _global_callback_thread, _usage_counter
     with _usage_counter_lock:
         _usage_counter += 1
-    if _callback_thread is None:
-        _callback_thread = CallbackThread()
-        _callback_thread.start()
-    assert _callback_thread is not None
+    if _global_callback_thread is None:
+        _global_callback_thread = CallbackThread()
+        _global_callback_thread.start()
+    assert _global_callback_thread is not None
     try:
-        yield _callback_thread.queue
+        yield _global_callback_thread.queue
     finally:
         with _usage_counter_lock:
             _usage_counter -= 1
             if _usage_counter == 0:
-                _callback_thread.stop()
-                _callback_thread = None
+                _global_callback_thread.stop()
+                _global_callback_thread = None

@@ -1,6 +1,9 @@
 from __future__ import annotations
+import collections
 
 import dataclasses
+import enum
+import traceback
 from typing import Callable, Iterable, Optional
 import threading
 from contextlib import contextmanager
@@ -43,16 +46,29 @@ class RotaryEncoderState:
     state_lock: threading.Lock = dataclasses.field(default_factory=threading.Lock)
 
 
+Callback = Callable[[], None]
+
+
+def same_thread_callback_handler(callback: Callback) -> None:
+    callback()
+
+
+def spawn_thread_callback_handler(callback: Callback) -> None:
+    thread = threading.Thread(target=callback, daemon=True)
+    thread.start()
+
+
 @dataclasses.dataclass(frozen=True)
 class RotaryEncoder:
     clk_pin: int
     dt_pin: int
     sw_pin: Optional[int] = None
-    on_clockwise_turn: Optional[Callable[[], None]] = None
-    on_counter_clockwise_turn: Optional[Callable[[], None]] = None
-    on_button_down: Optional[Callable[[], None]] = None
-    on_button_up: Optional[Callable[[], None]] = None
+    on_clockwise_turn: Optional[Callback] = None
+    on_counter_clockwise_turn: Optional[Callback] = None
+    on_button_down: Optional[Callback] = None
+    on_button_up: Optional[Callback] = None
 
+    _callback_handler: Callable[[Callback], object] = same_thread_callback_handler
     _state: RotaryEncoderState = dataclasses.field(default_factory=RotaryEncoderState, init=False)
     
     def start(self) -> None:
@@ -103,7 +119,7 @@ class RotaryEncoder:
             if not self._did_dial_move():
                 return
         if self.on_counter_clockwise_turn is not None:
-            self.on_counter_clockwise_turn()
+            self._callback_handler(self.on_counter_clockwise_turn)
 
     def _on_dt_changed(self, channel: object) -> None:
         with self._state.state_lock:
@@ -112,7 +128,13 @@ class RotaryEncoder:
             if not self._did_dial_move():
                 return
         if self.on_clockwise_turn is not None:
-            self.on_clockwise_turn()
+            self._callback_handler(self.on_clockwise_turn)
+
+
+class CallbackHandling(enum.Enum):
+    SAME_THREAD = enum.auto()
+    WORKER_THREAD = enum.auto()
+    SPAWN_THREAD = enum.auto()
 
 
 @contextmanager
@@ -121,12 +143,13 @@ def rotary_encoder(
     clk_pin: int,
     dt_pin: int,
     sw_pin: Optional[int] = None,
-    on_clockwise_turn: Optional[Callable[[], None]] = None,
-    on_counter_clockwise_turn: Optional[Callable[[], None]] = None,
-    on_button_down: Optional[Callable[[], None]] = None,
-    on_button_up: Optional[Callable[[], None]] = None,
+    on_clockwise_turn: Optional[Callback] = None,
+    on_counter_clockwise_turn: Optional[Callback] = None,
+    on_button_down: Optional[Callback] = None,
+    on_button_up: Optional[Callback] = None,
+    callback_handling: CallbackHandling = CallbackHandling.SPAWN_THREAD,
 ) -> Iterable[RotaryEncoder]:
-    encoder = RotaryEncoder(
+    kwargs = dict(
         clk_pin=clk_pin,
         dt_pin=dt_pin,
         sw_pin=sw_pin,
@@ -135,8 +158,78 @@ def rotary_encoder(
         on_button_down=on_button_down,
         on_button_up=on_button_up,
     )
-    encoder.start()
+
+    if callback_handling == CallbackHandling.WORKER_THREAD:
+        with callback_queue() as queue:
+            encoder = RotaryEncoder(
+                _callback_handler=queue.push,
+                **kwargs
+            )
+            encoder.start()
+            try:
+                yield encoder
+            finally:
+                encoder.stop()
+    else:
+        if callback_handling == CallbackHandling.SAME_THREAD:
+            handler = same_thread_callback_handler
+        else:
+            handler = spawn_thread_callback_handler
+        encoder = RotaryEncoder(
+            _callback_handler=handler,
+            **kwargs
+        )
+        encoder.start()
+        try:
+            yield encoder
+        finally:
+            encoder.stop()
+
+
+class CallbackThread(threading.Thread):
+    def __init__(self) -> None:
+        self._is_running = True
+        self.queue: collections.deque[Callback] = collections.deque()
+        super().__init__(name="ky-040-callback-handler", daemon=True)
+
+    def run(self) -> None:
+        while self._is_running:
+            try:
+                callback = self.queue.pop()
+            except IndexError:
+                pass
+            else:
+                try:
+                    callback()
+                except Exception:
+                    traceback.print_exc()
+        while self.queue:
+            self.queue.pop()()
+    
+    def stop(self) -> None:
+        self._is_running = False
+        self.join()
+
+
+_callback_thread: Optional[CallbackThread] = None
+_usage_counter = 0
+_usage_counter_lock = threading.Lock()
+
+
+@contextmanager
+def callback_queue() -> Iterable[collections.deque[Callback]]:
+    global _callback_queue, _callback_thread, _usage_counter
+    with _usage_counter_lock:
+        _usage_counter += 1
+    if _callback_thread is None:
+        _callback_thread = CallbackThread()
+        _callback_thread.start()
+    assert _callback_thread is not None
     try:
-        yield encoder
+        yield _callback_thread.queue
     finally:
-        encoder.stop()
+        with _usage_counter_lock:
+            _usage_counter -= 1
+            if _usage_counter == 0:
+                _callback_thread.stop()
+                _callback_thread = None

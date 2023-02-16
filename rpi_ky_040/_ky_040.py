@@ -27,15 +27,7 @@ class NotInRestingStateError(Exception):
     pass
 
 
-@contextmanager
-def gpio_bcm_mode() -> Iterable[None]:
-    original_mode = gpio.getmode()
-    gpio.setmode(gpio.BCM)
-    try:
-        yield
-    finally:
-        if original_mode is not None:
-            gpio.setmode(original_mode)
+gpio.setmode(gpio.BCM)
 
 
 @dataclasses.dataclass
@@ -43,7 +35,6 @@ class RotaryEncoderState:
     clk_state: bool = False
     dt_state: bool = False
     last_resting_state: bool = False
-    state_lock: threading.Lock = dataclasses.field(default_factory=threading.Lock)
 
 
 Callback = Callable[[], None]
@@ -72,31 +63,27 @@ class RotaryEncoder:
     _state: RotaryEncoderState = dataclasses.field(default_factory=RotaryEncoderState, init=False)
     
     def start(self) -> None:
-        with gpio_bcm_mode():
-            gpio.setup(self.clk_pin, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-            gpio.setup(self.dt_pin, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+        gpio.setup(self.clk_pin, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+        gpio.setup(self.dt_pin, gpio.IN, pull_up_down=gpio.PUD_DOWN)
 
-            self._state.clk_state = self._get_clk_state()
-            self._state.dt_state = self._get_dt_state()
+        self._state.clk_state = self._get_clk_state()
+        self._state.dt_state = self._get_dt_state()
 
-            self._state.last_resting_state = self._current_resting_state()
+        self._state.last_resting_state = self._current_resting_state()
 
-            gpio.add_event_detect(self.clk_pin, gpio.BOTH, callback=self._on_clk_changed)
-            gpio.add_event_detect(self.dt_pin, gpio.BOTH, callback=self._on_dt_changed)
+        gpio.add_event_detect(self.clk_pin, gpio.BOTH, callback=self._on_clk_changed)
+        gpio.add_event_detect(self.dt_pin, gpio.BOTH, callback=self._on_dt_changed)
 
     def stop(self) -> None:
-        with gpio_bcm_mode():
-            gpio.remove_event_detect(self.clk_pin)
-            gpio.remove_event_detect(self.dt_pin)
-            gpio.cleanup((self.clk_pin, self.dt_pin))
+        gpio.remove_event_detect(self.clk_pin)
+        gpio.remove_event_detect(self.dt_pin)
+        gpio.cleanup((self.clk_pin, self.dt_pin))
 
     def _get_clk_state(self) -> bool:
-        with gpio_bcm_mode():
-            return bool(gpio.input(self.clk_pin))
+        return bool(gpio.input(self.clk_pin))
     
     def _get_dt_state(self) -> bool:
-        with gpio_bcm_mode():
-            return bool(gpio.input(self.dt_pin))
+        return bool(gpio.input(self.dt_pin))
     
     def _is_resting_state(self) -> bool:
         return self._state.clk_state == self._state.dt_state
@@ -113,20 +100,18 @@ class RotaryEncoder:
         return False
 
     def _on_clk_changed(self, channel: object) -> None:
-        with self._state.state_lock:
-            self._state.dt_state = self._get_dt_state()
-            self._state.clk_state = self._get_clk_state()
-            if not self._did_dial_move():
-                return
+        self._state.dt_state = self._get_dt_state()
+        self._state.clk_state = self._get_clk_state()
+        if not self._did_dial_move():
+            return
         if self.on_counter_clockwise_turn is not None:
             self._callback_handler(self.on_counter_clockwise_turn)
 
     def _on_dt_changed(self, channel: object) -> None:
-        with self._state.state_lock:
-            self._state.dt_state = self._get_dt_state()
-            self._state.clk_state = self._get_clk_state()
-            if not self._did_dial_move():
-                return
+        self._state.dt_state = self._get_dt_state()
+        self._state.clk_state = self._get_clk_state()
+        if not self._did_dial_move():
+            return
         if self.on_clockwise_turn is not None:
             self._callback_handler(self.on_clockwise_turn)
 

@@ -104,7 +104,8 @@ class RotaryEncoder:
             self._state.clk_state = self._get_clk_state()
             if not self._did_dial_move():
                 return
-        self.on_counter_clockwise_turn()
+        if self.on_counter_clockwise_turn is not None:
+            self.on_counter_clockwise_turn()
 
     def _on_dt_changed(self, channel: object) -> None:
         with self._state.state_lock:
@@ -112,4 +113,5 @@ class RotaryEncoder:
             self._state.clk_state = self._get_clk_state()
             if not self._did_dial_move():
                 return
-        self.on_clockwise_turn()
+        if self.on_clockwise_turn is not None:
+            self.on_clockwise_turn()

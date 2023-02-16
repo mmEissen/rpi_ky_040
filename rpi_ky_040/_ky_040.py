@@ -26,13 +26,13 @@ class NotInRestingStateError(Exception):
 
 @contextmanager
 def gpio_bcm_mode() -> None:
-    original_mode = gpio.get_mode()
-    gpio.set_mode(gpio.BCM)
+    original_mode = gpio.getmode()
+    gpio.setmode(gpio.BCM)
     try:
         yield
     finally:
         if original_mode is not None:
-            gpio.set_mode(original_mode)
+            gpio.setmode(original_mode)
 
 
 @dataclasses.dataclass

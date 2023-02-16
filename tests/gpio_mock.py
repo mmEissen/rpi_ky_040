@@ -39,11 +39,11 @@ class GPIO:
         return
     
     @staticmethod
-    def get_mode() -> None:
+    def getmode() -> None:
         return None
 
     @staticmethod
-    def set_mode(mode: int) -> None:
+    def setmode(mode: int) -> None:
         return
 
 _pins: collections.defaultdict[int, int]

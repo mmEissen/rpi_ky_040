@@ -594,7 +594,7 @@ static void run_py_callbacks(unsigned int gpio, int state)
       if (cb->gpio == gpio) {
          // run callback
          gstate = PyGILState_Ensure();
-         result = PyObject_CallFunction(cb->py_cb, "i", chan_from_gpio(gpio), state);
+         result = PyObject_CallFunction(cb->py_cb, "ii", chan_from_gpio(gpio), state);
          if (result == NULL && PyErr_Occurred()){
             PyErr_Print();
             PyErr_Clear();

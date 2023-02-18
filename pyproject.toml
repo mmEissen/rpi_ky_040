@@ -12,11 +12,13 @@ python = "^3.9"
 [tool.poetry.group.prod.dependencies]
 rpi-gpio = {version = "^0.7.1", markers = "platform_machine == 'aarch64'"}
 
-[tool.poetry.group.dev.dependencies]
+[tool.poetry.group.dev]
 optional = true
+
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"
 black = "^23.1.0"
-rpi-gpio-fork = {path = "raspberry-gpio", develop = true}
+rpi-gpio-fork = {path = "raspberry-gpio", develop = false}
 
 [build-system]
 requires = ["poetry-core"]

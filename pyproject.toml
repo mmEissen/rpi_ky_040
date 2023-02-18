@@ -8,14 +8,15 @@ packages = [{include = "rpi_ky_040"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+
+[tool.poetry.group.prod.dependencies]
 rpi-gpio = {version = "^0.7.1", markers = "platform_machine == 'aarch64'"}
 
-[tool.poetry.group.test.dependencies]
-pytest = "^7.2.1"
-
-
 [tool.poetry.group.dev.dependencies]
+optional = true
+pytest = "^7.2.1"
 black = "^23.1.0"
+rpi-gpio-fork = {path = "raspberry-gpio", develop = true}
 
 [build-system]
 requires = ["poetry-core"]

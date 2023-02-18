@@ -1,0 +1,5 @@
+rpi.gpio (0.7.1~buster-1) unstable; urgency=low
+
+  * To match Python RPi.GPIO package 0.7.1
+
+ -- Ben Croston <ben@croston.org>  Sat, 6 Feb 2022 14:34:23 +0000

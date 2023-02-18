@@ -15,12 +15,12 @@ class MissingGPIOLibraryError(Exception):
 
 try:
     from RPi import GPIO as gpio
-except ImportError:
+except ImportError as e:
     raise MissingGPIOLibraryError(
         "Could not import RPi.GPIO. If this code is running on a raspberry pi, "
         "make sure that the rpi-gpio library is installed. You may install it "
         "by running `pip install rpi-gpio`."
-    )
+    ) from e
 
 
 class NotInRestingStateError(Exception):

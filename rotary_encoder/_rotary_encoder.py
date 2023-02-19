@@ -4,7 +4,7 @@ import collections
 import dataclasses
 import enum
 import traceback
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterator, Optional
 import threading
 from contextlib import contextmanager
 
@@ -14,7 +14,7 @@ class MissingGPIOLibraryError(Exception):
 
 
 try:
-    import rotary_encoder_gpio_core as gpio
+    import rotary_encoder_gpio_core as gpio  # type: ignore
 except ImportError as e:
     raise MissingGPIOLibraryError(
         "Could not import RPi.GPIO. If this code is running on a raspberry pi, "
@@ -30,14 +30,7 @@ class NotInRestingStateError(Exception):
 gpio.setmode(gpio.BCM)
 
 
-@dataclasses.dataclass
-class RotaryEncoderState:
-    clk_state: bool = False
-    dt_state: bool = False
-    last_resting_state: bool = False
-
-
-Callback = Callable[[], None]
+Callback = Callable[[], object]
 
 
 def gpio_thread_callback_handler(callback: Callback) -> None:
@@ -49,7 +42,7 @@ def spawn_thread_callback_handler(callback: Callback) -> None:
     thread.start()
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class RotaryEncoder:
     clk_pin: int
     dt_pin: int
@@ -59,17 +52,20 @@ class RotaryEncoder:
     on_button_down: Optional[Callback] = None
     on_button_up: Optional[Callback] = None
 
-    _callback_handler: Callable[[Callback], object] = gpio_thread_callback_handler
-    _state: RotaryEncoderState = dataclasses.field(default_factory=RotaryEncoderState, init=False)
+    clk_state: bool = False
+    dt_state: bool = False
+    last_resting_state: bool = False
+
+    callback_handler: Callable[[Callback], object] = gpio_thread_callback_handler
     
     def start(self) -> None:
         gpio.setup(self.clk_pin, gpio.IN, pull_up_down=gpio.PUD_DOWN)
         gpio.setup(self.dt_pin, gpio.IN, pull_up_down=gpio.PUD_DOWN)
 
-        self._state.clk_state = self._get_clk_state()
-        self._state.dt_state = self._get_dt_state()
+        self.clk_state = self._get_clk_state()
+        self.dt_state = self._get_dt_state()
 
-        self._state.last_resting_state = self._current_resting_state()
+        self.last_resting_state = self._current_resting_state()
 
         gpio.add_event_detect(self.clk_pin, gpio.BOTH, callback=self._on_clk_changed)
         gpio.add_event_detect(self.dt_pin, gpio.BOTH, callback=self._on_dt_changed)
@@ -86,32 +82,28 @@ class RotaryEncoder:
         return bool(gpio.input(self.dt_pin))
     
     def _is_resting_state(self) -> bool:
-        return self._state.clk_state == self._state.dt_state
+        return self.clk_state == self.dt_state
 
     def _current_resting_state(self) -> bool:
         if not self._is_resting_state():
             raise NotInRestingStateError()
-        return self._state.clk_state
+        return self.clk_state
     
     def _did_dial_move(self) -> bool:
-        if self._is_resting_state() and self._current_resting_state() != self._state.last_resting_state:
-            self._state.last_resting_state = self._current_resting_state()
+        if self._is_resting_state() and self._current_resting_state() != self.last_resting_state:
+            self.last_resting_state = self._current_resting_state()
             return True
         return False
 
     def _on_clk_changed(self, channel: object, is_on: int) -> None:
-        self._state.clk_state = bool(is_on)
-        if not self._did_dial_move():
-            return
-        if self.on_counter_clockwise_turn is not None:
-            self._callback_handler(self.on_counter_clockwise_turn)
+        self.clk_state = bool(is_on)
+        if  self._did_dial_move() and self.on_counter_clockwise_turn is not None:
+            self.callback_handler(self.on_counter_clockwise_turn)  # type: ignore
 
     def _on_dt_changed(self, channel: object, is_on: int) -> None:
-        self._state.dt_state = bool(is_on)
-        if not self._did_dial_move():
-            return
-        if self.on_clockwise_turn is not None:
-            self._callback_handler(self.on_clockwise_turn)
+        self.dt_state = bool(is_on)
+        if self._did_dial_move() and self.on_clockwise_turn is not None:
+            self.callback_handler(self.on_clockwise_turn)  # type: ignore
 
 
 class CallbackHandling(enum.Enum):
@@ -132,8 +124,8 @@ def connect(
     on_button_down: Optional[Callback] = None,
     on_button_up: Optional[Callback] = None,
     callback_handling: CallbackHandling = CallbackHandling.GLOBAL_WORKER_THREAD,
-) -> Iterable[None]:
-    kwargs = dict(
+) -> Iterator[None]:
+    encoder = RotaryEncoder(
         clk_pin=clk_pin,
         dt_pin=dt_pin,
         sw_pin=sw_pin,
@@ -144,11 +136,9 @@ def connect(
     )
 
     if callback_handling == CallbackHandling.GLOBAL_WORKER_THREAD:
-        with callback_queue() as queue:
-            encoder = RotaryEncoder(
-                _callback_handler=queue.appendleft,
-                **kwargs
-            )
+        thread: CallbackThread
+        with global_callback_thread() as thread:
+            encoder.callback_handler = thread.queue.appendleft  # type: ignore
             encoder.start()
             try:
                 yield
@@ -157,10 +147,7 @@ def connect(
     elif callback_handling == CallbackHandling.LOCAL_WORKER_THREAD:
         worker_thread = CallbackThread()
         worker_thread.start()
-        encoder = RotaryEncoder(
-            _callback_handler=worker_thread.queue.appendleft,
-            **kwargs
-        )
+        encoder.callback_handler = worker_thread.queue.appendleft  # type: ignore
         encoder.start()
         try:
             yield
@@ -172,10 +159,7 @@ def connect(
             handler = gpio_thread_callback_handler
         else:
             handler = spawn_thread_callback_handler
-        encoder = RotaryEncoder(
-            _callback_handler=handler,
-            **kwargs
-        )
+        encoder.callback_handler = handler  # type: ignore
         encoder.start()
         try:
             yield
@@ -222,7 +206,7 @@ _usage_counter_lock = threading.Lock()
 
 
 @contextmanager
-def callback_queue() -> Iterable[collections.deque[Callback]]:
+def global_callback_thread() -> Iterator[CallbackThread]:
     global _callback_queue, _global_callback_thread, _usage_counter
     with _usage_counter_lock:
         _usage_counter += 1
@@ -231,7 +215,7 @@ def callback_queue() -> Iterable[collections.deque[Callback]]:
         _global_callback_thread.start()
     assert _global_callback_thread is not None
     try:
-        yield _global_callback_thread.queue
+        yield _global_callback_thread
     finally:
         with _usage_counter_lock:
             _usage_counter -= 1

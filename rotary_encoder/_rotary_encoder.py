@@ -125,9 +125,9 @@ class RotaryEncoder:
         # might still be in the transition.
         is_on = gpio.input(self.sw_pin)
         if not is_on and self.on_button_down is not None:
-            self.callback_handler(self.on_button_down)
+            self.callback_handler(self.on_button_down)  # type: ignore
         if is_on and self.on_button_up is not None:
-            self.callback_handler(self.on_button_up)
+            self.callback_handler(self.on_button_up)  # type: ignore
 
 
 class CallbackHandling(enum.Enum):

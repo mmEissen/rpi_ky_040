@@ -1,18 +1,20 @@
-# RPi KY-040
+# Rotary Encoder
 
-This package makes it easy to use a [KY-040 Rotary Encoder](https://www.rcscomponents.kiev.ua/datasheets/ky-040-datasheet.pdf) with a raspberry pi.
+A rotary encoder package for the Raspberry pi that "just works".
+
+Tested with a [KY-040 Rotary Encoder](https://www.rcscomponents.kiev.ua/datasheets/ky-040-datasheet.pdf) on a Raspberry pi 3 B+
 
 ## Installation
 
 Install via pip:
 ```
-pip install rpi-ky-040
+pip install rpi-rotary-encoder
 ```
 
 ## Example
 
 ```python
-from rpi_ky_040 import rotary_encoder
+import rotary_encoder
 
 
 counter = 0
@@ -29,7 +31,7 @@ def decrement():
     print(counter)
 
 
-with rotary_encoder(
+with rotary_encoder.connect(
     clk_pin=20,
     dt_pin=21,
     on_clockwise_turn=increment,
@@ -41,13 +43,12 @@ with rotary_encoder(
 
 ## Advanced Usage
 
-The `rotary_encoder` context manager can take an optional `callback_handling` argument. This controls how the callbacks are executed. The options are:
+When calling `connect` you can pass in an optional `callback_handling` argument. This controls how the callbacks are executed. The options are:
 
 - `CallbackHandling.GLOBAL_WORKER_THREAD`: The default. Callbacks are called in a global worker thread. This means all callbacks across all rotary encoders are called in the same thread. This ensures that all callbacks are executed sequentially. This is the least likely to cause problems with race conditions.
-- `CallbackHandling.LOCAL_WORKER_THREAD`: Similar to the above, except that each individual rotary encoders callbacks are executed on a different thread. This means that sequential execution of the callbacks of one encoder is still guaranteed, but not across several encoders.
+- `CallbackHandling.LOCAL_WORKER_THREAD`: Similar to the above, except that each individual rotary encoders callbacks are executed on a different thread. This means that sequential execution of the callbacks of one encoder is still guaranteed, but not across several encoders. The responsiveness of the individual encoders may be slightly improved.
 - `CallbackHandling.SPAWN_THREAD`: Spawn a new thread for every callback. The execution of your callbacks is no longer sequential, and you will have to make sure that your callbacks are thread safe.
-- `CallbackHandling.GPIO_INTERUPT_THREAD`:  Not recommended. The callbacks are executed on the thread spawned by the underlying `RPi.GPIO` library. If your callbacks execution takes too long, some callback calls might get skipped.
-
+- `CallbackHandling.GPIO_INTERUPT_THREAD`:  Not recommended. Similar in behavior to `CallbackHandling.SPAWN_THREAD` except that the threads are spawned by the underlying C extension library.
 
 ## Similar Projects:
 

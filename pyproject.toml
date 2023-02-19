@@ -1,16 +1,14 @@
 [tool.poetry]
-name = "rpi-ky-040"
+name = "rpi-rotary-encoder"
 version = "0.1.0"
-description = ""
-authors = ["Your Name <you@example.com>"]
+description = 'A rotary encoder library for the raspberry pi that "just works"'
+authors = ["Momo Eissenhauer <momo.eissenhauer@gmail.com>"]
 readme = "README.md"
-packages = [{include = "rpi_ky_040"}]
+license = "MIT"
+packages = [{include = "rotary_encoder"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-
-[tool.poetry.group.prod.dependencies]
-rpi-gpio = {version = "^0.7.1", markers = "platform_machine == 'aarch64'"}
 
 [tool.poetry.group.dev]
 optional = true

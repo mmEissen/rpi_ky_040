@@ -1,0 +1,1 @@
+from rotary_encoder._rotary_encoder import connect, CallbackHandling

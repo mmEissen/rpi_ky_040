@@ -20,6 +20,6 @@
 
 """This package provides a Python module to control the GPIO on a Raspberry Pi"""
 
-from RPi._GPIO import *
+from rotary_encoder_gpio_core._gpio import *
 
 VERSION = '0.7.1'

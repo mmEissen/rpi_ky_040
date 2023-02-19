@@ -14,7 +14,7 @@ class MissingGPIOLibraryError(Exception):
 
 
 try:
-    from RPi import GPIO as gpio
+    import rotary_encoder_gpio_core as gpio
 except ImportError as e:
     raise MissingGPIOLibraryError(
         "Could not import RPi.GPIO. If this code is running on a raspberry pi, "
@@ -122,7 +122,7 @@ class CallbackHandling(enum.Enum):
 
 
 @contextmanager
-def rotary_encoder(
+def connect(
     *,
     clk_pin: int,
     dt_pin: int,

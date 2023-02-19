@@ -6,7 +6,7 @@ from setuptools.command.build_ext import build_ext
 
 ext_modules = [
     Extension(
-        'RPi._GPIO', 
+        'rotary_encoder_gpio_core._gpio', 
         [
             'source/py_gpio.c', 
             'source/c_gpio.c', 

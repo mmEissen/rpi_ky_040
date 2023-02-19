@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "rpi-gpio-fork"
+name = "rotary-encoder-gpio-core"
 version = "0.1.0"
 description = ""
 authors = ["None"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "RPi"}]
+packages = [{include = "rotary_encoder_gpio_core"}]
 build = "build.py"
 
 [tool.poetry.dependencies]

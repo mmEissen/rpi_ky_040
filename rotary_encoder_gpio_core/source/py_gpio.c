@@ -981,9 +981,9 @@ static struct PyModuleDef rpigpiomodule = {
 #endif
 
 #if PY_MAJOR_VERSION > 2
-PyMODINIT_FUNC PyInit__GPIO(void)
+PyMODINIT_FUNC PyInit__gpio(void)
 #else
-PyMODINIT_FUNC init_GPIO(void)
+PyMODINIT_FUNC init_gpio(void)
 #endif
 {
    int i;
@@ -993,7 +993,7 @@ PyMODINIT_FUNC init_GPIO(void)
    if ((module = PyModule_Create(&rpigpiomodule)) == NULL)
       return NULL;
 #else
-   if ((module = Py_InitModule3("RPi._GPIO", rpi_gpio_methods, moduledocstring)) == NULL)
+   if ((module = Py_InitModule3("rotary_encoder_gpio_core._gpio", rpi_gpio_methods, moduledocstring)) == NULL)
       return;
 #endif
 

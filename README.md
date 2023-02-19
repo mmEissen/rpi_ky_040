@@ -31,11 +31,22 @@ def decrement():
     print(counter)
 
 
+def press():
+    print("PRESS")
+
+
+def release():
+    print("RELEASE")
+
+
 with rotary_encoder.connect(
-    clk_pin=20,
-    dt_pin=21,
-    on_clockwise_turn=increment,
-    on_counter_clockwise_turn=decrement,
+    clk_pin=20,                           # required
+    dt_pin=21,                            # required
+    sw_pin=26,                            # optional
+    on_clockwise_turn=increment,          # optional
+    on_counter_clockwise_turn=decrement,  # optional
+    on_button_down=press,                 # optional
+    on_button_up=release,                 # optional
 ):
     input("press enter to quit\n")
 ```

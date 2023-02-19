@@ -12,8 +12,6 @@ ext_modules = [
             'source/c_gpio.c', 
             'source/cpuinfo.c', 
             'source/event_gpio.c', 
-            'source/soft_pwm.c', 
-            'source/py_pwm.c', 
             'source/common.c', 
             'source/constants.c',
         ]

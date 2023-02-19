@@ -23,7 +23,6 @@ SOFTWARE.
 #include "Python.h"
 #include "c_gpio.h"
 #include "event_gpio.h"
-#include "py_pwm.h"
 #include "cpuinfo.h"
 #include "constants.h"
 #include "common.h"
@@ -101,13 +100,8 @@ static PyObject *py_cleanup(PyObject *self, PyObject *args, PyObject *kwargs)
 
    if (chanlist == NULL) {  // channel kwarg not set
       // do nothing
-#if PY_MAJOR_VERSION > 2
    } else if (PyLong_Check(chanlist)) {
       channel = (int)PyLong_AsLong(chanlist);
-#else
-   } else if (PyInt_Check(chanlist)) {
-      channel = (int)PyInt_AsLong(chanlist);
-#endif
       if (PyErr_Occurred())
          return NULL;
       chanlist = NULL;
@@ -152,14 +146,8 @@ static PyObject *py_cleanup(PyObject *self, PyObject *args, PyObject *kwargs)
                   return NULL;
                }
             }
-
-#if PY_MAJOR_VERSION > 2
             if (PyLong_Check(tempobj)) {
                channel = (int)PyLong_AsLong(tempobj);
-#else
-            if (PyInt_Check(tempobj)) {
-               channel = (int)PyInt_AsLong(tempobj);
-#endif
                if (PyErr_Occurred())
                   return NULL;
             } else {
@@ -230,13 +218,8 @@ static PyObject *py_setup_channel(PyObject *self, PyObject *args, PyObject *kwar
    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Oi|ii", kwlist, &chanlist, &direction, &pud, &initial))
       return NULL;
 
-#if PY_MAJOR_VERSION > 2
    if (PyLong_Check(chanlist)) {
       channel = (int)PyLong_AsLong(chanlist);
-#else
-   if (PyInt_Check(chanlist)) {
-      channel = (int)PyInt_AsLong(chanlist);
-#endif
       if (PyErr_Occurred())
          return NULL;
       chanlist = NULL;
@@ -306,13 +289,8 @@ static PyObject *py_setup_channel(PyObject *self, PyObject *args, PyObject *kwar
          }
       }
 
-#if PY_MAJOR_VERSION > 2
       if (PyLong_Check(tempobj)) {
          channel = (int)PyLong_AsLong(tempobj);
-#else
-      if (PyInt_Check(tempobj)) {
-         channel = (int)PyInt_AsLong(tempobj);
-#endif
          if (PyErr_Occurred())
              return NULL;
       } else {
@@ -970,7 +948,6 @@ PyMethodDef rpi_gpio_methods[] = {
    {NULL, NULL, 0, NULL}
 };
 
-#if PY_MAJOR_VERSION > 2
 static struct PyModuleDef rpigpiomodule = {
    PyModuleDef_HEAD_INIT,
    "RPi._GPIO",      // name of module
@@ -978,24 +955,14 @@ static struct PyModuleDef rpigpiomodule = {
    -1,               // size of per-interpreter state of the module, or -1 if the module keeps state in global variables.
    rpi_gpio_methods
 };
-#endif
 
-#if PY_MAJOR_VERSION > 2
 PyMODINIT_FUNC PyInit__gpio(void)
-#else
-PyMODINIT_FUNC init_gpio(void)
-#endif
 {
    int i;
    PyObject *module = NULL;
 
-#if PY_MAJOR_VERSION > 2
    if ((module = PyModule_Create(&rpigpiomodule)) == NULL)
       return NULL;
-#else
-   if ((module = Py_InitModule3("rotary_encoder_gpio_core._gpio", rpi_gpio_methods, moduledocstring)) == NULL)
-      return;
-#endif
 
    define_constants(module);
 
@@ -1007,11 +974,7 @@ PyMODINIT_FUNC init_gpio(void)
    {
       PyErr_SetString(PyExc_RuntimeError, "This module can only be run on a Raspberry Pi!");
       setup_error = 1;
-#if PY_MAJOR_VERSION > 2
       return NULL;
-#else
-      return;
-#endif
    }
    board_info = Py_BuildValue("{sissssssssss}",
                               "P1_REVISION",rpiinfo.p1_revision,
@@ -1033,17 +996,8 @@ PyMODINIT_FUNC init_gpio(void)
    rpi_revision = Py_BuildValue("i", rpiinfo.p1_revision);     // deprecated
    PyModule_AddObject(module, "RPI_REVISION", rpi_revision);   // deprecated
 
-   // Add PWM class
-   if (PWM_init_PWMType() == NULL)
-#if PY_MAJOR_VERSION > 2
-      return NULL;
-#else
-      return;
-#endif
-   Py_INCREF(&PWMType);
-   PyModule_AddObject(module, "PWM", (PyObject*)&PWMType);
 
-#if PY_MAJOR_VERSION < 3 || PY_MINOR_VERSION < 7
+#if PY_MINOR_VERSION < 7
    if (!PyEval_ThreadsInitialized())
       PyEval_InitThreads();
 #endif
@@ -1053,27 +1007,15 @@ PyMODINIT_FUNC init_gpio(void)
    {
       setup_error = 1;
       cleanup();
-#if PY_MAJOR_VERSION > 2
       return NULL;
-#else
-      return;
-#endif
    }
 
    if (Py_AtExit(event_cleanup_all) != 0)
    {
       setup_error = 1;
       cleanup();
-#if PY_MAJOR_VERSION > 2
       return NULL;
-#else
-      return;
-#endif
    }
 
-#if PY_MAJOR_VERSION > 2
    return module;
-#else
-   return;
-#endif
 }

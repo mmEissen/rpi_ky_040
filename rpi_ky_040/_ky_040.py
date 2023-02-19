@@ -99,17 +99,15 @@ class RotaryEncoder:
             return True
         return False
 
-    def _on_clk_changed(self, channel: object) -> None:
-        self._state.dt_state = self._get_dt_state()
-        self._state.clk_state = self._get_clk_state()
+    def _on_clk_changed(self, channel: object, is_on: int) -> None:
+        self._state.clk_state = bool(is_on)
         if not self._did_dial_move():
             return
         if self.on_counter_clockwise_turn is not None:
             self._callback_handler(self.on_counter_clockwise_turn)
 
-    def _on_dt_changed(self, channel: object) -> None:
-        self._state.dt_state = self._get_dt_state()
-        self._state.clk_state = self._get_clk_state()
+    def _on_dt_changed(self, channel: object, is_on: int) -> None:
+        self._state.dt_state = bool(is_on)
         if not self._did_dial_move():
             return
         if self.on_clockwise_turn is not None:

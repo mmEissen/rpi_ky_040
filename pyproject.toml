@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rpi-rotary-encoder"
-version = "0.1.0"
+version = "0.2.0"
 description = 'A rotary encoder library for the raspberry pi that "just works"'
 authors = ["Momo Eissenhauer <momo.eissenhauer@gmail.com>"]
 readme = "README.md"

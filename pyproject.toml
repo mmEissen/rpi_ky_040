@@ -9,6 +9,7 @@ packages = [{include = "rotary_encoder"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+rotary-encoder-gpio-core = "^0.1.0"
 
 [tool.poetry.group.dev]
 optional = true

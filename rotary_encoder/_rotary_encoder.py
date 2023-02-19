@@ -23,6 +23,9 @@ except ImportError as e:
     ) from e
 
 
+BOUNCETIME_MS = 50
+
+
 class NotInRestingStateError(Exception):
     pass
 
@@ -57,6 +60,10 @@ class RotaryEncoder:
     last_resting_state: bool = False
 
     callback_handler: Callable[[Callback], object] = gpio_thread_callback_handler
+
+    def __post_init__(self) -> None:
+        if (self.on_button_down is not None or self.on_button_up is not None) and self.sw_pin is None:
+            raise ValueError("You must set the `sw_pin` to add a button callback.")
     
     def start(self) -> None:
         gpio.setup(self.clk_pin, gpio.IN, pull_up_down=gpio.PUD_DOWN)
@@ -69,11 +76,19 @@ class RotaryEncoder:
 
         gpio.add_event_detect(self.clk_pin, gpio.BOTH, callback=self._on_clk_changed)
         gpio.add_event_detect(self.dt_pin, gpio.BOTH, callback=self._on_dt_changed)
+        
+        if self.sw_pin is not None:
+            gpio.setup(self.sw_pin, gpio.IN, pull_up_down=gpio.PUD_UP)
+            gpio.add_event_detect(self.sw_pin, gpio.BOTH, callback=self._on_sw_changed, bouncetime=BOUNCETIME_MS)
+
 
     def stop(self) -> None:
         gpio.remove_event_detect(self.clk_pin)
         gpio.remove_event_detect(self.dt_pin)
         gpio.cleanup((self.clk_pin, self.dt_pin))
+        if self.sw_pin is not None:
+            gpio.remove_event_detect(self.sw_pin)
+            gpio.cleanup((self.sw_pin,))
 
     def _get_clk_state(self) -> bool:
         return bool(gpio.input(self.clk_pin))
@@ -104,6 +119,15 @@ class RotaryEncoder:
         self.dt_state = bool(is_on)
         if self._did_dial_move() and self.on_clockwise_turn is not None:
             self.callback_handler(self.on_clockwise_turn)  # type: ignore
+    
+    def _on_sw_changed(self, channel: object, is_on: int) -> None:
+        # Here the is_on is unreliable because it's too fast, and the button
+        # might still be in the transition.
+        is_on = gpio.input(self.sw_pin)
+        if not is_on and self.on_button_down is not None:
+            self.callback_handler(self.on_button_down)
+        if is_on and self.on_button_up is not None:
+            self.callback_handler(self.on_button_up)
 
 
 class CallbackHandling(enum.Enum):

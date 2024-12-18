@@ -14,7 +14,7 @@ class MissingGPIOLibraryError(Exception):
 
 
 try:
-    import rotary_encoder_gpio_core as gpio  # type: ignore
+    import RPi.GPIO as gpio  # type: ignore
 except ImportError as e:
     raise MissingGPIOLibraryError(
         "Could not import RPi.GPIO. If this code is running on a raspberry pi, "
@@ -110,19 +110,17 @@ class RotaryEncoder:
             return True
         return False
 
-    def _on_clk_changed(self, channel: object, is_on: int) -> None:
-        self.clk_state = bool(is_on)
+    def _on_clk_changed(self, channel: object) -> None:
+        self.clk_state = self._get_clk_state()
         if  self._did_dial_move() and self.on_counter_clockwise_turn is not None:
             self.callback_handler(self.on_counter_clockwise_turn)  # type: ignore
 
-    def _on_dt_changed(self, channel: object, is_on: int) -> None:
-        self.dt_state = bool(is_on)
+    def _on_dt_changed(self, channel: object) -> None:
+        self.dt_state = self._get_dt_state()
         if self._did_dial_move() and self.on_clockwise_turn is not None:
             self.callback_handler(self.on_clockwise_turn)  # type: ignore
     
-    def _on_sw_changed(self, channel: object, is_on: int) -> None:
-        # Here the is_on is unreliable because it's too fast, and the button
-        # might still be in the transition.
+    def _on_sw_changed(self, channel: object) -> None:
         is_on = gpio.input(self.sw_pin)
         if not is_on and self.on_button_down is not None:
             self.callback_handler(self.on_button_down)  # type: ignore
